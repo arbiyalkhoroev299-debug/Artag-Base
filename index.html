@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Склад — Калькулятор и База</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Склад">
+<meta name="theme-color" content="#B5502B">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  :root{
+    --bg: #F5F3EF;
+    --surface: #FFFFFF;
+    --ink: #26221F;
+    --ink-soft: #6B6259;
+    --brick: #B5502B;
+    --brick-dark: #8F3D1F;
+    --steel: #4A6670;
+    --line: #DED7C9;
+    --ok: #5B8A6B;
+    --danger: #B03A3A;
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+  #app{
+    max-width: 520px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display:flex;
+    flex-direction:column;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+  header.top{
+    padding: calc(18px + env(safe-area-inset-top)) 20px 14px;
+    background: var(--ink);
+    color: var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+  header.top::after{
+    content:"";
+    position:absolute; right:-30px; top:-30px;
+    width:140px; height:140px;
+    background:
+      linear-gradient(var(--brick), var(--brick)) 0 0/48% 48% no-repeat,
+      linear-gradient(var(--steel), var(--steel)) 52% 0/48% 48% no-repeat,
+      linear-gradient(var(--steel), var(--steel)) 0 52%/48% 48% no-repeat,
+      linear-gradient(var(--brick), var(--brick)) 52% 52%/48% 48% no-repeat;
+    opacity:.9;
+    transform: rotate(8deg);
+    border-radius: 6px;
+  }
+  header.top h1{
+    margin:0;
+    font-size: 22px;
+    letter-spacing: 0.2px;
+    font-weight: 700;
+    position:relative;
+  }
+  header.top p{
+    margin:4px 0 0;
+    font-size: 13px;
+    color: #C9C2B6;
+    position:relative;
+    max-width: 70%;
+  }
+
+  main{ flex:1; padding: 18px 16px 8px; }
+  .screen{ display:none; }
+  .screen.active{ display:block; animation: fadein .18s ease-out; }
+  @keyframes fadein{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
+
+  .card{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .card h2{
+    margin: 0 0 14px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .field{ margin-bottom: 12px; }
+  .field label{
+    display:block;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-bottom: 5px;
+  }
+  .row2{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  input[type=text], input[type=number], select{
+    width:100%;
+    padding: 11px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-size: 16px;
+    background: #FCFBF9;
+    color: var(--ink);
+    font-family: inherit;
+  }
+  input:focus, select:focus{
+    outline: 2px solid var(--brick);
+    outline-offset: 1px;
+    background: #fff;
+  }
+  .hint{ font-size: 11.5px; color: var(--ink-soft); margin-top: 4px; }
+
+  button.primary{
+    width:100%;
+    padding: 13px;
+    background: var(--brick);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15.5px;
+    font-weight: 700;
+    letter-spacing: .2px;
+  }
+  button.primary:active{ background: var(--brick-dark); }
+  button.ghost{
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--ink);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  button.text{
+    background:none; border:none; color: var(--steel); font-size: 13.5px; font-weight:600; padding:6px;
+  }
+
+  .result{
+    margin-top: 14px;
+    border-top: 1px dashed var(--line);
+    padding-top: 14px;
+  }
+  .result .big-row{
+    display:flex; gap: 10px;
+  }
+  .stat{
+    flex:1;
+    background: #FBF2ED;
+    border: 1px solid #EFD9CC;
+    border-radius: 12px;
+    padding: 12px;
+    text-align:center;
+  }
+  .stat .num{
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brick-dark);
+    line-height:1.1;
+  }
+  .stat .lbl{ font-size: 11.5px; color: var(--ink-soft); margin-top: 3px; }
+  .result .meta{
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    text-align:center;
+  }
+  .result .meta b{ color: var(--ink); }
+
+  .searchbar{
+    display:flex; gap:8px; margin-bottom: 12px;
+  }
+  .searchbar input{ flex:1; }
+
+  .item-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--line);
+    gap: 10px;
+  }
+  .item-row:last-child{ border-bottom:none; }
+  .item-main{ min-width:0; }
+  .item-name{ font-weight:700; font-size: 14.5px; }
+  .item-cat{
+    display:inline-block; margin-left:6px; font-size:10.5px; font-weight:700;
+    color: var(--steel); background:#EAF0F1; padding:2px 6px; border-radius:6px; vertical-align:1px;
+  }
+  .item-loc{ font-size: 13px; color: var(--ink-soft); margin-top:2px; }
+  .item-qty{ font-size: 11.5px; color: var(--ok); margin-top:2px; }
+  .item-actions{ display:flex; gap:6px; flex-shrink:0; }
+  .icon-btn{
+    width:30px; height:30px; border-radius:8px; border:1px solid var(--line);
+    background:#fff; font-size:14px; display:flex; align-items:center; justify-content:center;
+  }
+  .empty{
+    text-align:center; padding: 28px 10px; color: var(--ink-soft); font-size:13.5px;
+  }
+  .toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+
+  nav.tabbar{
+    position: fixed; left:0; right:0; bottom:0;
+    background: rgba(255,255,255,.92);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--line);
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    display:flex;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+  nav.tabbar button{
+    flex:1; background:none; border:none;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    padding:6px 0;
+    color: var(--ink-soft);
+    font-size: 11px;
+    font-weight:600;
+  }
+  nav.tabbar button.active{ color: var(--brick); }
+  nav.tabbar .glyph{ font-size:19px; }
+
+  dialog#form-dialog{
+    border:none; border-radius: 16px 16px 0 0;
+    width:100%; max-width:520px;
+    padding:0; margin: auto auto 0;
+    box-shadow: 0 -8px 30px rgba(0,0,0,.18);
+  }
+  dialog#form-dialog::backdrop{ background: rgba(20,18,16,.4); }
+  .sheet{ padding: 18px 18px calc(18px + env(safe-area-inset-bottom)); }
+  .sheet-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .sheet-head h3{ margin:0; font-size:16px; }
+
+  .toast{
+    position:fixed; left:50%; bottom: 100px; transform:translateX(-50%);
+    background: var(--ink); color:#fff; padding:10px 16px; border-radius:10px;
+    font-size:13px; opacity:0; pointer-events:none; transition: opacity .2s, bottom .2s;
+    z-index: 50;
+  }
+  .toast.show{ opacity:1; bottom:120px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="top">
+    <h1 id="page-title">Калькулятор плитки</h1>
+    <p id="page-sub">Кафель · ламинат · двери</p>
+  </header>
+
+  <main>
+    <!-- CALCULATOR -->
+    <section class="screen active" id="screen-calc">
+      <div class="card">
+        <h2>Размер плитки</h2>
+        <div class="row2">
+          <div class="field">
+            <label>Ширина, см</label>
+            <input type="number" inputmode="decimal" id="c-w" placeholder="напр. 60">
+          </div>
+          <div class="field">
+            <label>Высота, см</label>
+            <input type="number" inputmode="decimal" id="c-h" placeholder="напр. 120">
+          </div>
+        </div>
+        <div class="field">
+          <label>Плиток в одной пачке, шт</label>
+          <input type="number" inputmode="numeric" id="c-pack" placeholder="напр. 4">
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>Нужно клиенту, м²</label>
+            <input type="number" inputmode="decimal" id="c-need" placeholder="напр. 25">
+          </div>
+          <div class="field">
+            <label>Запас, %</label>
+            <input type="number" inputmode="numeric" id="c-margin" value="10">
+          </div>
+        </div>
+        <button class="primary" onclick="calcTiles()">Рассчитать</button>
+
+        <div class="result" id="c-result" style="display:none">
+          <div class="big-row">
+            <div class="stat"><div class="num" id="r-packs">0</div><div class="lbl">пачек выдать</div></div>
+            <div class="stat"><div class="num" id="r-loose">0</div><div class="lbl">штук россыпью</div></div>
+          </div>
+          <div class="meta" id="r-meta"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- WAREHOUSE -->
+    <section class="screen" id="screen-store">
+      <div class="toolbar">
+        <span class="hint" id="store-count">0 позиций в базе</span>
+        <span>
+          <button class="text" onclick="exportData()">Экспорт</button>
+          <button class="text" onclick="document.getElementById('import-file').click()">Импорт</button>
+          <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importData(event)">
+        </span>
+      </div>
+
+      <div class="searchbar">
+        <input type="text" id="search-input" placeholder="Поиск: Fresco 120x60…" oninput="renderItems()">
+      </div>
+
+      <div class="card" style="padding:6px 12px;">
+        <div id="items-list"></div>
+      </div>
+
+      <button class="primary" onclick="openForm()">+ Добавить товар</button>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab-btn active" id="tab-calc" onclick="showScreen('calc')">
+      <span class="glyph">▦</span>Калькулятор
+    </button>
+    <button class="tab-btn" id="tab-store" onclick="showScreen('store')">
+      <span class="glyph">▤</span>База склада
+    </button>
+  </nav>
+</div>
+
+<dialog id="form-dialog">
+  <div class="sheet">
+    <div class="sheet-head">
+      <h3 id="form-title">Новый товар</h3>
+      <button class="icon-btn" onclick="closeForm()">✕</button>
+    </div>
+    <input type="hidden" id="f-id">
+    <div class="field">
+      <label>Название товара</label>
+      <input type="text" id="f-name" placeholder="напр. Fresco 120x60">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Категория</label>
+        <select id="f-cat">
+          <option value="Кафель">Кафель</option>
+          <option value="Ламинат">Ламинат</option>
+          <option value="Двери">Двери</option>
+          <option value="Другое">Другое</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Остаток (необязательно)</label>
+        <input type="text" id="f-qty" placeholder="напр. 32 м²">
+      </div>
+    </div>
+    <div class="field">
+      <label>Место на складе</label>
+      <input type="text" id="f-loc" placeholder="напр. Стеллаж 3, полка 2">
+    </div>
+    <button class="primary" onclick="saveItem()">Сохранить</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = "sklad_items_v1";
+let items = [];
+
+function loadItems(){
+  try{
+    items = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  }catch(e){ items = []; }
+}
+function persist(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+
+function showScreen(name){
+  document.getElementById('screen-calc').classList.toggle('active', name==='calc');
+  document.getElementById('screen-store').classList.toggle('active', name==='store');
+  document.getElementById('tab-calc').classList.toggle('active', name==='calc');
+  document.getElementById('tab-store').classList.toggle('active', name==='store');
+  document.getElementById('page-title').textContent = name==='calc' ? 'Калькулятор плитки' : 'База склада';
+  document.getElementById('page-sub').textContent = name==='calc' ? 'Кафель · ламинат · двери' : 'Поиск товара по названию';
+  if(name==='store'){ renderItems(); }
+}
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+// ---------- CALCULATOR ----------
+function calcTiles(){
+  const w = parseFloat(document.getElementById('c-w').value);
+  const h = parseFloat(document.getElementById('c-h').value);
+  const perPack = parseInt(document.getElementById('c-pack').value);
+  const need = parseFloat(document.getElementById('c-need').value);
+  const marginPct = parseFloat(document.getElementById('c-margin').value) || 0;
+
+  if(!w || !h || !perPack || !need || w<=0 || h<=0 || perPack<=0 || need<=0){
+    toast("Заполните все поля числами больше нуля");
+    return;
+  }
+
+  const tileArea = (w/100) * (h/100); // m2 per tile
+  const neededWithMargin = need * (1 + marginPct/100);
+  const tilesNeeded = Math.ceil(neededWithMargin / tileArea);
+  const packs = Math.floor(tilesNeeded / perPack);
+  const loose = tilesNeeded - packs*perPack;
+  const covered = tilesNeeded * tileArea;
+
+  document.getElementById('r-packs').textContent = packs;
+  document.getElementById('r-loose').textContent = loose;
+  document.getElementById('r-meta').innerHTML =
+    `Всего плиток: <b>${tilesNeeded}</b> · площадь плитки <b>${tileArea.toFixed(3)} м²</b><br>` +
+    `Покроет: <b>${covered.toFixed(2)} м²</b> при запросе ${need} м² (запас ${marginPct}%)`;
+  document.getElementById('c-result').style.display = 'block';
+}
+
+// ---------- WAREHOUSE ----------
+function renderItems(){
+  const q = (document.getElementById('search-input').value || "").trim().toLowerCase();
+  const list = document.getElementById('items-list');
+  const filtered = q
+    ? items.filter(it => it.name.toLowerCase().includes(q) || (it.loc||"").toLowerCase().includes(q))
+    : items.slice();
+
+  filtered.sort((a,b) => a.name.localeCompare(b.name, 'ru'));
+
+  document.getElementById('store-count').textContent = `${items.length} ${pluralPos(items.length)} в базе`;
+
+  if(filtered.length === 0){
+    list.innerHTML = `<div class="empty">${items.length===0 ? 'База пуста. Добавьте первый товар.' : 'Ничего не найдено'}</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(it => `
+    <div class="item-row">
+      <div class="item-main">
+        <div class="item-name">${escapeHtml(it.name)}<span class="item-cat">${escapeHtml(it.cat||'—')}</span></div>
+        <div class="item-loc">📍 ${escapeHtml(it.loc || '—')}</div>
+        ${it.qty ? `<div class="item-qty">Остаток: ${escapeHtml(it.qty)}</div>` : ''}
+      </div>
+      <div class="item-actions">
+        <button class="icon-btn" onclick="openForm('${it.id}')">✎</button>
+        <button class="icon-btn" onclick="deleteItem('${it.id}')">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function pluralPos(n){
+  const mod10 = n % 10, mod100 = n % 100;
+  if(mod10===1 && mod100!==11) return 'позиция';
+  if([2,3,4].includes(mod10) && ![12,13,14].includes(mod100)) return 'позиции';
+  return 'позиций';
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function openForm(id){
+  const dlg = document.getElementById('form-dialog');
+  if(id){
+    const it = items.find(x => x.id === id);
+    document.getElementById('form-title').textContent = 'Изменить товар';
+    document.getElementById('f-id').value = it.id;
+    document.getElementById('f-name').value = it.name;
+    document.getElementById('f-cat').value = it.cat || 'Кафель';
+    document.getElementById('f-qty').value = it.qty || '';
+    document.getElementById('f-loc').value = it.loc || '';
+  } else {
+    document.getElementById('form-title').textContent = 'Новый товар';
+    document.getElementById('f-id').value = '';
+    document.getElementById('f-name').value = '';
+    document.getElementById('f-cat').value = 'Кафель';
+    document.getElementById('f-qty').value = '';
+    document.getElementById('f-loc').value = '';
+  }
+  dlg.showModal();
+  setTimeout(()=>document.getElementById('f-name').focus(), 50);
+}
+function closeForm(){ document.getElementById('form-dialog').close(); }
+
+function saveItem(){
+  const name = document.getElementById('f-name').value.trim();
+  const loc = document.getElementById('f-loc').value.trim();
+  const cat = document.getElementById('f-cat').value;
+  const qty = document.getElementById('f-qty').value.trim();
+  const id = document.getElementById('f-id').value;
+
+  if(!name || !loc){
+    toast("Укажите название и место на складе");
+    return;
+  }
+
+  if(id){
+    const it = items.find(x => x.id === id);
+    Object.assign(it, {name, loc, cat, qty});
+  } else {
+    items.push({ id: 'it_' + Date.now() + '_' + Math.random().toString(36).slice(2,7), name, loc, cat, qty });
+  }
+  persist();
+  closeForm();
+  renderItems();
+  toast("Сохранено");
+}
+
+function deleteItem(id){
+  if(!confirm("Удалить эту позицию из базы?")) return;
+  items = items.filter(x => x.id !== id);
+  persist();
+  renderItems();
+  toast("Удалено");
+}
+
+function exportData(){
+  const blob = new Blob([JSON.stringify(items, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `sklad-baza-${date}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importData(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const incoming = JSON.parse(reader.result);
+      if(!Array.isArray(incoming)) throw new Error('bad format');
+      let added = 0;
+      incoming.forEach(raw => {
+        if(!raw.name) return;
+        items.push({
+          id: 'it_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+          name: String(raw.name), loc: String(raw.loc||''), cat: String(raw.cat||'Другое'), qty: String(raw.qty||'')
+        });
+        added++;
+      });
+      persist();
+      renderItems();
+      toast(`Импортировано позиций: ${added}`);
+    }catch(e){
+      toast("Не удалось прочитать файл");
+    }
+    evt.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// init
+loadItems();
+renderItems();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
