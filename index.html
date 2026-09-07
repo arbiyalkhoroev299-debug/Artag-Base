@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -188,7 +189,14 @@
     gap: 10px;
   }
   .item-row:last-child{ border-bottom:none; }
-  .item-main{ min-width:0; }
+  .item-thumb{
+    width:44px; height:44px; border-radius:9px; flex-shrink:0;
+    background: #EFEAE2 center/cover no-repeat;
+    border: 1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; color: var(--ink-soft);
+  }
+  .item-main{ min-width:0; flex:1; }
   .item-name{ font-weight:700; font-size: 14.5px; }
   .item-cat{
     display:inline-block; margin-left:6px; font-size:10.5px; font-weight:700;
@@ -237,6 +245,15 @@
   .sheet{ padding: 18px 18px calc(18px + env(safe-area-inset-bottom)); }
   .sheet-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
   .sheet-head h3{ margin:0; font-size:16px; }
+  .photo-block{ display:flex; align-items:center; gap:12px; margin-bottom: 14px; }
+  .photo-preview{
+    width:72px; height:72px; border-radius:12px; flex-shrink:0;
+    background: #F3EEE6 center/cover no-repeat;
+    border: 1px dashed var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-size:22px; color: var(--ink-soft);
+  }
+  .photo-actions{ display:flex; flex-direction:column; gap:6px; }
 
   .toast{
     position:fixed; left:50%; bottom: 100px; transform:translateX(-50%);
@@ -280,8 +297,8 @@
             <input type="number" inputmode="decimal" id="c-need" placeholder="напр. 25">
           </div>
           <div class="field">
-            <label>Запас, %</label>
-            <input type="number" inputmode="numeric" id="c-margin" value="10">
+            <label>Запас, % (0 = без запаса)</label>
+            <input type="number" inputmode="numeric" id="c-margin" value="0">
           </div>
         </div>
         <button class="primary" onclick="calcTiles()">Рассчитать</button>
@@ -336,6 +353,16 @@
       <button class="icon-btn" onclick="closeForm()">✕</button>
     </div>
     <input type="hidden" id="f-id">
+
+    <div class="photo-block">
+      <div class="photo-preview" id="f-photo-preview">📷</div>
+      <div class="photo-actions">
+        <button type="button" class="ghost" onclick="document.getElementById('f-photo-input').click()">📷 Сделать фото</button>
+        <button type="button" class="text" id="f-photo-remove" style="display:none" onclick="removePhoto()">Удалить фото</button>
+        <input type="file" id="f-photo-input" accept="image/*" capture="environment" style="display:none" onchange="capturePhoto(event)">
+      </div>
+    </div>
+
     <div class="field">
       <label>Название товара</label>
       <input type="text" id="f-name" placeholder="напр. Fresco 120x60">
@@ -368,6 +395,72 @@
 <script>
 const STORAGE_KEY = "sklad_items_v1";
 let items = [];
+
+// ---------- PHOTO STORAGE (IndexedDB, separate from the items list) ----------
+// Photos live in their own database so they never touch/overwrite the
+// existing localStorage item list — your saved data stays exactly as is.
+let __dbPromise = null;
+function openPhotoDB(){
+  if(__dbPromise) return __dbPromise;
+  __dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open('sklad_photos_db', 1);
+    req.onupgradeneeded = () => {
+      if(!req.result.objectStoreNames.contains('photos')){
+        req.result.createObjectStore('photos');
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return __dbPromise;
+}
+async function savePhoto(id, dataUrl){
+  const db = await openPhotoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('photos', 'readwrite');
+    tx.objectStore('photos').put(dataUrl, id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function getPhoto(id){
+  const db = await openPhotoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('photos', 'readonly');
+    const req = tx.objectStore('photos').get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function deletePhoto(id){
+  const db = await openPhotoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('photos', 'readwrite');
+    tx.objectStore('photos').delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+// Resize/compress a captured photo so it doesn't eat up storage
+function resizeImage(file, maxDim=900, quality=0.72){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = () => { img.src = reader.result; };
+    reader.onerror = reject;
+    img.onload = () => {
+      let {width, height} = img;
+      if(width > height && width > maxDim){ height = height*maxDim/width; width = maxDim; }
+      else if(height > maxDim){ width = width*maxDim/height; height = maxDim; }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 function loadItems(){
   try{
@@ -418,9 +511,13 @@ function calcTiles(){
 
   document.getElementById('r-packs').textContent = packs;
   document.getElementById('r-loose').textContent = loose;
-  document.getElementById('r-meta').innerHTML =
-    `Всего плиток: <b>${tilesNeeded}</b> · площадь плитки <b>${tileArea.toFixed(3)} м²</b><br>` +
-    `Покроет: <b>${covered.toFixed(2)} м²</b> при запросе ${need} м² (запас ${marginPct}%)`;
+
+  let metaHtml = `Всего плиток: <b>${tilesNeeded}</b> · площадь одной плитки <b>${tileArea.toFixed(3)} м²</b>`;
+  const overflow = covered - neededWithMargin;
+  if(overflow > 0.005){
+    metaHtml += `<br>Округлено до целой плитки: покроет <b>${covered.toFixed(2)} м²</b> вместо ${need} м² (плитку нельзя выдать по частям)`;
+  }
+  document.getElementById('r-meta').innerHTML = metaHtml;
   document.getElementById('c-result').style.display = 'block';
 }
 
@@ -443,6 +540,7 @@ function renderItems(){
 
   list.innerHTML = filtered.map(it => `
     <div class="item-row">
+      <div class="item-thumb" id="thumb-${it.id}">${it.hasPhoto ? '' : '🔲'}</div>
       <div class="item-main">
         <div class="item-name">${escapeHtml(it.name)}<span class="item-cat">${escapeHtml(it.cat||'—')}</span></div>
         <div class="item-loc">📍 ${escapeHtml(it.loc || '—')}</div>
@@ -454,6 +552,14 @@ function renderItems(){
       </div>
     </div>
   `).join('');
+
+  filtered.filter(it => it.hasPhoto).forEach(it => {
+    getPhoto(it.id).then(dataUrl => {
+      if(!dataUrl) return;
+      const el = document.getElementById(`thumb-${it.id}`);
+      if(el){ el.style.backgroundImage = `url(${dataUrl})`; el.textContent = ''; }
+    }).catch(()=>{});
+  });
 }
 
 function pluralPos(n){
@@ -467,8 +573,16 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-function openForm(id){
+function resetPhotoPreview(){
+  const prev = document.getElementById('f-photo-preview');
+  prev.style.backgroundImage = '';
+  prev.textContent = '📷';
+  document.getElementById('f-photo-remove').style.display = 'none';
+}
+
+async function openForm(id){
   const dlg = document.getElementById('form-dialog');
+  resetPhotoPreview();
   if(id){
     const it = items.find(x => x.id === id);
     document.getElementById('form-title').textContent = 'Изменить товар';
@@ -477,9 +591,18 @@ function openForm(id){
     document.getElementById('f-cat').value = it.cat || 'Кафель';
     document.getElementById('f-qty').value = it.qty || '';
     document.getElementById('f-loc').value = it.loc || '';
+    if(it.hasPhoto){
+      const dataUrl = await getPhoto(it.id).catch(()=>null);
+      if(dataUrl){
+        document.getElementById('f-photo-preview').style.backgroundImage = `url(${dataUrl})`;
+        document.getElementById('f-photo-preview').textContent = '';
+        document.getElementById('f-photo-remove').style.display = 'inline-block';
+      }
+    }
   } else {
     document.getElementById('form-title').textContent = 'Новый товар';
-    document.getElementById('f-id').value = '';
+    // assign id now so a photo can be attached before the item is saved
+    document.getElementById('f-id').value = 'it_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
     document.getElementById('f-name').value = '';
     document.getElementById('f-cat').value = 'Кафель';
     document.getElementById('f-qty').value = '';
@@ -490,7 +613,35 @@ function openForm(id){
 }
 function closeForm(){ document.getElementById('form-dialog').close(); }
 
-function saveItem(){
+async function capturePhoto(evt){
+  const file = evt.target.files[0];
+  evt.target.value = '';
+  if(!file) return;
+  const id = document.getElementById('f-id').value;
+  try{
+    const dataUrl = await resizeImage(file);
+    await savePhoto(id, dataUrl);
+    document.getElementById('f-photo-preview').style.backgroundImage = `url(${dataUrl})`;
+    document.getElementById('f-photo-preview').textContent = '';
+    document.getElementById('f-photo-remove').style.display = 'inline-block';
+    // mark the item as having a photo if it already exists in the list
+    const it = items.find(x => x.id === id);
+    if(it){ it.hasPhoto = true; persist(); }
+    toast('Фото сохранено');
+  }catch(e){
+    toast('Не удалось сохранить фото');
+  }
+}
+
+async function removePhoto(){
+  const id = document.getElementById('f-id').value;
+  await deletePhoto(id).catch(()=>{});
+  resetPhotoPreview();
+  const it = items.find(x => x.id === id);
+  if(it){ it.hasPhoto = false; persist(); renderItems(); }
+}
+
+async function saveItem(){
   const name = document.getElementById('f-name').value.trim();
   const loc = document.getElementById('f-loc').value.trim();
   const cat = document.getElementById('f-cat').value;
@@ -502,11 +653,12 @@ function saveItem(){
     return;
   }
 
-  if(id){
-    const it = items.find(x => x.id === id);
-    Object.assign(it, {name, loc, cat, qty});
+  const existing = items.find(x => x.id === id);
+  if(existing){
+    Object.assign(existing, {name, loc, cat, qty});
   } else {
-    items.push({ id: 'it_' + Date.now() + '_' + Math.random().toString(36).slice(2,7), name, loc, cat, qty });
+    const photo = await getPhoto(id).catch(()=>null);
+    items.push({ id, name, loc, cat, qty, hasPhoto: !!photo });
   }
   persist();
   closeForm();
@@ -518,12 +670,22 @@ function deleteItem(id){
   if(!confirm("Удалить эту позицию из базы?")) return;
   items = items.filter(x => x.id !== id);
   persist();
+  deletePhoto(id).catch(()=>{});
   renderItems();
   toast("Удалено");
 }
 
-function exportData(){
-  const blob = new Blob([JSON.stringify(items, null, 2)], {type:'application/json'});
+async function exportData(){
+  toast('Готовим файл…');
+  const withPhotos = await Promise.all(items.map(async it => {
+    const copy = {...it};
+    if(it.hasPhoto){
+      const dataUrl = await getPhoto(it.id).catch(()=>null);
+      if(dataUrl) copy.photo = dataUrl;
+    }
+    return copy;
+  }));
+  const blob = new Blob([JSON.stringify(withPhotos, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const date = new Date().toISOString().slice(0,10);
@@ -539,19 +701,25 @@ function importData(evt){
   const file = evt.target.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try{
       const incoming = JSON.parse(reader.result);
       if(!Array.isArray(incoming)) throw new Error('bad format');
       let added = 0;
-      incoming.forEach(raw => {
-        if(!raw.name) return;
+      for(const raw of incoming){
+        if(!raw.name) continue;
+        const id = 'it_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+        let hasPhoto = false;
+        if(raw.photo){
+          await savePhoto(id, raw.photo).catch(()=>{});
+          hasPhoto = true;
+        }
         items.push({
-          id: 'it_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
-          name: String(raw.name), loc: String(raw.loc||''), cat: String(raw.cat||'Другое'), qty: String(raw.qty||'')
+          id, name: String(raw.name), loc: String(raw.loc||''), cat: String(raw.cat||'Другое'),
+          qty: String(raw.qty||''), hasPhoto
         });
         added++;
-      });
+      }
       persist();
       renderItems();
       toast(`Импортировано позиций: ${added}`);
