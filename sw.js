@@ -1,4 +1,4 @@
-const CACHE = "sklad-cache-v1";
+const CACHE = "sklad-cache-v2";
 const FILES = [
   "./",
   "./index.html",
