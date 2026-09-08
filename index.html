@@ -8,21 +8,23 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Склад">
-<meta name="theme-color" content="#B5502B">
+<meta name="theme-color" content="#121212">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
   :root{
-    --bg: #F5F3EF;
+    --bg: #F4F3F1;
     --surface: #FFFFFF;
-    --ink: #26221F;
-    --ink-soft: #6B6259;
-    --brick: #B5502B;
-    --brick-dark: #8F3D1F;
-    --steel: #4A6670;
-    --line: #DED7C9;
-    --ok: #5B8A6B;
-    --danger: #B03A3A;
-    --radius: 14px;
+    --ink: #121212;
+    --ink-soft: #8B8A87;
+    --accent: #FF5A2E;
+    --accent-dark: #E04A22;
+    --steel: #5B6B72;
+    --line: rgba(18,18,18,.07);
+    --ok: #2F8F5B;
+    --danger: #E24C4C;
+    --radius: 20px;
+    --shadow: 0 2px 10px rgba(18,18,18,.05), 0 1px 2px rgba(18,18,18,.04);
+    --shadow-lg: 0 16px 40px rgba(18,18,18,.16);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;height:100%;}
@@ -32,6 +34,7 @@
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     overscroll-behavior-y: none;
+    letter-spacing: -0.01em;
   }
   #app{
     max-width: 520px;
@@ -39,140 +42,141 @@
     min-height: 100vh;
     display:flex;
     flex-direction:column;
-    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+    padding-bottom: calc(92px + env(safe-area-inset-bottom));
   }
   header.top{
-    padding: calc(18px + env(safe-area-inset-top)) 20px 14px;
+    padding: calc(20px + env(safe-area-inset-top)) 22px 20px;
     background: var(--ink);
-    color: var(--bg);
+    color: #fff;
     position: relative;
     overflow: hidden;
   }
-  header.top::after{
-    content:"";
-    position:absolute; right:-30px; top:-30px;
-    width:140px; height:140px;
-    background:
-      linear-gradient(var(--brick), var(--brick)) 0 0/48% 48% no-repeat,
-      linear-gradient(var(--steel), var(--steel)) 52% 0/48% 48% no-repeat,
-      linear-gradient(var(--steel), var(--steel)) 0 52%/48% 48% no-repeat,
-      linear-gradient(var(--brick), var(--brick)) 52% 52%/48% 48% no-repeat;
-    opacity:.9;
-    transform: rotate(8deg);
-    border-radius: 6px;
-  }
   header.top h1{
     margin:0;
-    font-size: 22px;
-    letter-spacing: 0.2px;
-    font-weight: 700;
+    font-size: 24px;
+    letter-spacing: -0.02em;
+    font-weight: 800;
     position:relative;
   }
   header.top p{
-    margin:4px 0 0;
-    font-size: 13px;
-    color: #C9C2B6;
+    margin:5px 0 0;
+    font-size: 13.5px;
+    color: rgba(255,255,255,.55);
     position:relative;
     max-width: 70%;
+    font-weight: 500;
+  }
+  header.top::before{
+    content:"";
+    position:absolute; left:22px; bottom:0;
+    width:28px; height:4px; border-radius:4px 4px 0 0;
+    background: var(--accent);
   }
 
-  main{ flex:1; padding: 18px 16px 8px; }
+  main{ flex:1; padding: 20px 16px 8px; }
   .screen{ display:none; }
-  .screen.active{ display:block; animation: fadein .18s ease-out; }
-  @keyframes fadein{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
+  .screen.active{ display:block; animation: fadein .2s ease-out; }
+  @keyframes fadein{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
 
   .card{
     background: var(--surface);
-    border: 1px solid var(--line);
+    border: none;
+    box-shadow: var(--shadow);
     border-radius: var(--radius);
-    padding: 16px;
+    padding: 18px;
     margin-bottom: 14px;
   }
   .card h2{
     margin: 0 0 14px;
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--ink);
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--ink-soft);
   }
   .field{ margin-bottom: 12px; }
   .field label{
     display:block;
     font-size: 12.5px;
     color: var(--ink-soft);
-    margin-bottom: 5px;
+    margin-bottom: 6px;
+    font-weight: 600;
   }
   .row2{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  input[type=text], input[type=number], select{
+  input[type=text], input[type=number], input[type=date], select{
     width:100%;
-    padding: 11px 12px;
-    border: 1px solid var(--line);
-    border-radius: 10px;
+    padding: 13px 14px;
+    border: none;
+    border-radius: 13px;
     font-size: 16px;
-    background: #FCFBF9;
+    background: #F1F0ED;
     color: var(--ink);
     font-family: inherit;
+    font-weight: 600;
   }
-  input:focus, select:focus{
-    outline: 2px solid var(--brick);
+  input:focus, select:focus, textarea:focus{
+    outline: 2px solid var(--accent);
     outline-offset: 1px;
     background: #fff;
   }
-  .hint{ font-size: 11.5px; color: var(--ink-soft); margin-top: 4px; }
+  .hint{ font-size: 12px; color: var(--ink-soft); margin-top: 4px; font-weight:600; }
 
   button.primary{
     width:100%;
-    padding: 13px;
-    background: var(--brick);
+    padding: 15px;
+    background: var(--ink);
     color: #fff;
     border: none;
-    border-radius: 10px;
+    border-radius: 999px;
     font-size: 15.5px;
     font-weight: 700;
-    letter-spacing: .2px;
+    letter-spacing: -0.01em;
   }
-  button.primary:active{ background: var(--brick-dark); }
+  button.primary:active{ background: var(--accent-dark); }
   button.ghost{
-    background: none;
-    border: 1px solid var(--line);
+    background: #F1F0ED;
+    border: none;
     color: var(--ink);
-    border-radius: 10px;
-    padding: 9px 12px;
+    border-radius: 999px;
+    padding: 10px 16px;
     font-size: 13.5px;
-    font-weight: 600;
+    font-weight: 700;
   }
   button.text{
-    background:none; border:none; color: var(--steel); font-size: 13.5px; font-weight:600; padding:6px;
+    background:none; border:none; color: var(--accent-dark); font-size: 13.5px; font-weight:700; padding:6px;
   }
 
   .result{
-    margin-top: 14px;
-    border-top: 1px dashed var(--line);
-    padding-top: 14px;
+    margin-top: 16px;
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
   }
   .result .big-row{
     display:flex; gap: 10px;
   }
   .stat{
     flex:1;
-    background: #FBF2ED;
-    border: 1px solid #EFD9CC;
-    border-radius: 12px;
-    padding: 12px;
+    background: var(--ink);
+    border: none;
+    border-radius: 16px;
+    padding: 16px 12px;
     text-align:center;
   }
   .stat .num{
-    font-family: ui-monospace, "SF Mono", Menlo, monospace;
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--brick-dark);
+    font-family: -apple-system, sans-serif;
+    font-size: 30px;
+    font-weight: 800;
+    color: var(--accent);
     line-height:1.1;
+    letter-spacing: -0.02em;
   }
-  .stat .lbl{ font-size: 11.5px; color: var(--ink-soft); margin-top: 3px; }
+  .stat .lbl{ font-size: 11px; color: rgba(255,255,255,.6); margin-top: 4px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
   .result .meta{
-    margin-top: 10px;
+    margin-top: 12px;
     font-size: 12.5px;
     color: var(--ink-soft);
     text-align:center;
+    font-weight:500;
   }
   .result .meta b{ color: var(--ink); }
 
@@ -183,44 +187,48 @@
 
   .item-row{
     display:flex; justify-content:space-between; align-items:center;
-    padding: 12px 4px;
+    padding: 13px 4px;
     border-bottom: 1px solid var(--line);
     gap: 10px;
   }
   .item-row:last-child{ border-bottom:none; }
   .item-thumb{
-    width:44px; height:44px; border-radius:9px; flex-shrink:0;
-    background: #EFEAE2 center/cover no-repeat;
-    border: 1px solid var(--line);
+    width:46px; height:46px; border-radius:12px; flex-shrink:0;
+    background: #F1F0ED center/cover no-repeat;
+    border: none;
     display:flex; align-items:center; justify-content:center;
     font-size:16px; color: var(--ink-soft);
   }
   .item-main{ min-width:0; flex:1; }
-  .item-name{ font-weight:700; font-size: 14.5px; }
+  .item-name{ font-weight:700; font-size: 14.5px; letter-spacing:-0.01em; }
   .item-cat{
-    display:inline-block; margin-left:6px; font-size:10.5px; font-weight:700;
-    color: var(--steel); background:#EAF0F1; padding:2px 6px; border-radius:6px; vertical-align:1px;
+    display:inline-block; margin-left:6px; font-size:10px; font-weight:800;
+    text-transform:uppercase; letter-spacing:.03em;
+    color: var(--steel); background:#EAF0EF; padding:3px 7px; border-radius:6px; vertical-align:1px;
   }
-  .item-loc{ font-size: 13px; color: var(--ink-soft); margin-top:2px; }
-  .item-qty{ font-size: 11.5px; color: var(--ok); margin-top:2px; }
+  .item-loc{ font-size: 13px; color: var(--ink-soft); margin-top:3px; font-weight:500; }
+  .item-qty{ font-size: 11.5px; color: var(--ok); margin-top:3px; font-weight:700; }
   .item-actions{ display:flex; gap:6px; flex-shrink:0; }
   .icon-btn{
-    width:30px; height:30px; border-radius:8px; border:1px solid var(--line);
-    background:#fff; font-size:14px; display:flex; align-items:center; justify-content:center;
+    width:32px; height:32px; border-radius:10px; border:none;
+    background:#F1F0ED; font-size:14px; display:flex; align-items:center; justify-content:center;
   }
   .empty{
-    text-align:center; padding: 28px 10px; color: var(--ink-soft); font-size:13.5px;
+    text-align:center; padding: 32px 10px; color: var(--ink-soft); font-size:13.5px; font-weight:500;
   }
   .toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
 
   nav.tabbar{
-    position: fixed; left:0; right:0; bottom:0;
-    background: rgba(255,255,255,.92);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid var(--line);
-    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    position: fixed; left:16px; right:16px; bottom: calc(14px + env(safe-area-inset-bottom));
+    background: rgba(255,255,255,.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: none;
+    box-shadow: var(--shadow-lg);
+    border-radius: 24px;
+    padding: 10px 8px;
     display:flex;
-    max-width: 520px;
+    max-width: 488px;
     margin: 0 auto;
   }
   nav.tabbar button{
@@ -228,65 +236,111 @@
     display:flex; flex-direction:column; align-items:center; gap:3px;
     padding:6px 0;
     color: var(--ink-soft);
-    font-size: 11px;
-    font-weight:600;
+    font-size: 10.5px;
+    font-weight:700;
+    border-radius: 14px;
   }
-  nav.tabbar button.active{ color: var(--brick); }
+  nav.tabbar button.active{ color: var(--ink); background: var(--bg); }
+  nav.tabbar button.active .glyph{ color: var(--accent); }
   nav.tabbar .glyph{ font-size:19px; }
 
   dialog#form-dialog{
-    border:none; border-radius: 16px 16px 0 0;
+    border:none; border-radius: 24px 24px 0 0;
     width:100%; max-width:520px;
     padding:0; margin: auto auto 0;
-    box-shadow: 0 -8px 30px rgba(0,0,0,.18);
+    box-shadow: var(--shadow-lg);
   }
-  dialog#form-dialog::backdrop{ background: rgba(20,18,16,.4); }
-  .sheet{ padding: 18px 18px calc(18px + env(safe-area-inset-bottom)); }
-  .sheet-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
-  .sheet-head h3{ margin:0; font-size:16px; }
-  .photo-block{ display:flex; align-items:center; gap:12px; margin-bottom: 14px; }
+  dialog#form-dialog::backdrop{ background: rgba(10,10,10,.5); }
+  .sheet{ padding: 20px 20px calc(20px + env(safe-area-inset-bottom)); }
+  .sheet-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .sheet-head h3{ margin:0; font-size:17px; font-weight:800; letter-spacing:-0.01em; }
+  .photo-block{ display:flex; align-items:center; gap:14px; margin-bottom: 16px; }
   .photo-preview{
-    width:72px; height:72px; border-radius:12px; flex-shrink:0;
-    background: #F3EEE6 center/cover no-repeat;
-    border: 1px dashed var(--line);
+    width:76px; height:76px; border-radius:16px; flex-shrink:0;
+    background: #F1F0ED center/cover no-repeat;
+    border: none;
     display:flex; align-items:center; justify-content:center;
     font-size:22px; color: var(--ink-soft);
   }
-  .photo-actions{ display:flex; flex-direction:column; gap:6px; }
+  .photo-actions{ display:flex; flex-direction:column; gap:8px; }
 
   .toast{
-    position:fixed; left:50%; bottom: 100px; transform:translateX(-50%);
-    background: var(--ink); color:#fff; padding:10px 16px; border-radius:10px;
-    font-size:13px; opacity:0; pointer-events:none; transition: opacity .2s, bottom .2s;
+    position:fixed; left:50%; bottom: 110px; transform:translateX(-50%);
+    background: var(--ink); color:#fff; padding:11px 18px; border-radius:999px;
+    font-size:13px; font-weight:600; opacity:0; pointer-events:none; transition: opacity .2s, bottom .2s;
     z-index: 50;
+    box-shadow: var(--shadow-lg);
   }
-  .toast.show{ opacity:1; bottom:120px; }
+  .toast.show{ opacity:1; bottom:130px; }
 
   .item-row{ cursor:pointer; }
 
   dialog#detail-dialog{
-    border:none; border-radius: 16px;
+    border:none; border-radius: 24px;
     width:calc(100% - 32px); max-width:480px;
     padding:0; margin:auto;
-    box-shadow: 0 12px 40px rgba(0,0,0,.25);
+    box-shadow: var(--shadow-lg);
+    overflow:hidden;
   }
-  dialog#detail-dialog::backdrop{ background: rgba(20,18,16,.45); }
+  dialog#detail-dialog::backdrop{ background: rgba(10,10,10,.55); }
   .detail-photo{
     width:100%; aspect-ratio: 1 / 1; max-height:50vh;
-    background: #EFEAE2 center/cover no-repeat;
-    border-radius: 16px 16px 0 0;
+    background: #F1F0ED center/cover no-repeat;
     display:flex; align-items:center; justify-content:center;
     font-size:40px; color: var(--ink-soft);
   }
-  .detail-body{ padding: 18px 20px calc(18px + env(safe-area-inset-bottom)); }
-  .detail-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:12px; }
-  .detail-head h3{ margin:0; font-size:18px; line-height:1.3; }
-  .detail-row{ display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line); font-size:14px; }
+  .detail-body{ padding: 20px 22px calc(20px + env(safe-area-inset-bottom)); }
+  .detail-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:14px; }
+  .detail-head h3{ margin:0; font-size:19px; font-weight:800; letter-spacing:-0.01em; line-height:1.3; }
+  .detail-row{ display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line); font-size:14px; }
   .detail-row:last-of-type{ border-bottom:none; }
-  .detail-row .k{ color: var(--ink-soft); }
-  .detail-row .v{ font-weight:600; text-align:right; }
-  .detail-actions{ display:flex; gap:10px; margin-top:16px; }
+  .detail-row .k{ color: var(--ink-soft); font-weight:500; }
+  .detail-row .v{ font-weight:700; text-align:right; }
+  .detail-actions{ display:flex; gap:10px; margin-top:18px; }
   .detail-actions button{ flex:1; }
+
+  /* Deliveries */
+  .delivery-row{
+    padding: 13px 4px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+  }
+  .delivery-row:last-child{ border-bottom:none; }
+  .delivery-date{ font-weight:700; font-size:14.5px; letter-spacing:-0.01em; }
+  .delivery-note{
+    font-size: 13px; color: var(--ink-soft); margin-top:4px; font-weight:500;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+  .delivery-meta{ font-size:11px; color: var(--accent-dark); margin-top:5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+
+  .photo-gallery{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom: 14px; }
+  .gallery-tile{
+    width:74px; height:74px; border-radius:14px; position:relative;
+    background: #F1F0ED center/cover no-repeat;
+    border: none;
+    display:flex; align-items:center; justify-content:center;
+    font-size:20px; color: var(--ink-soft);
+  }
+  .gallery-tile.add-tile{ background:#F1F0ED; border: 1.5px dashed var(--ink-soft); }
+  .gallery-tile .rm{
+    position:absolute; top:-6px; right:-6px;
+    width:20px; height:20px; border-radius:50%;
+    background: var(--danger); color:#fff; font-size:11px;
+    display:flex; align-items:center; justify-content:center; border:2px solid var(--surface);
+  }
+
+  #photo-lightbox{
+    display:none; position:fixed; inset:0; z-index:100;
+    background: rgba(8,8,8,.94);
+    align-items:center; justify-content:center;
+  }
+  #photo-lightbox.show{ display:flex; }
+  #photo-lightbox img{ max-width:92%; max-height:80vh; border-radius:14px; }
+  #photo-lightbox .lb-close{
+    position:absolute; top: calc(16px + env(safe-area-inset-top)); right:16px;
+    width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.15);
+    color:#fff; border:none; font-size:18px;
+  }
 </style>
 </head>
 <body>
@@ -359,6 +413,19 @@
 
       <button class="primary" onclick="openForm()">+ Добавить товар</button>
     </section>
+
+    <!-- DELIVERIES -->
+    <section class="screen" id="screen-deliveries">
+      <div class="toolbar">
+        <span class="hint" id="deliveries-count">0 поставок</span>
+      </div>
+
+      <div class="card" style="padding:6px 12px;">
+        <div id="deliveries-list"></div>
+      </div>
+
+      <button class="primary" onclick="openDeliveryForm()">+ Новая поставка</button>
+    </section>
   </main>
 
   <nav class="tabbar">
@@ -367,6 +434,9 @@
     </button>
     <button class="tab-btn" id="tab-store" onclick="showScreen('store')">
       <span class="glyph">▤</span>База склада
+    </button>
+    <button class="tab-btn" id="tab-deliveries" onclick="showScreen('deliveries')">
+      <span class="glyph">▧</span>Поставки
     </button>
   </nav>
 </div>
@@ -434,9 +504,64 @@
 
 <div class="toast" id="toast"></div>
 
+<dialog id="delivery-form-dialog">
+  <div class="sheet">
+    <div class="sheet-head">
+      <h3 id="df-title">Новая поставка</h3>
+      <button class="icon-btn" onclick="document.getElementById('delivery-form-dialog').close()">✕</button>
+    </div>
+    <input type="hidden" id="df-id">
+    <div class="field">
+      <label>Дата поставки</label>
+      <input type="date" id="df-date">
+    </div>
+    <div class="field">
+      <label>Что прибыло</label>
+      <textarea id="df-note" rows="4" placeholder="напр. Fresco 120x60 — 12 пачек&#10;Ламинат Дуб Сонома — 8 уп" style="width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:10px; font-size:15px; font-family:inherit; background:#FCFBF9;"></textarea>
+    </div>
+    <div class="field">
+      <label>Фото накладной (можно несколько)</label>
+      <div class="photo-gallery" id="df-gallery"></div>
+      <button type="button" class="ghost" onclick="document.getElementById('df-photo-input').click()">📷 Добавить фото</button>
+      <input type="file" id="df-photo-input" accept="image/*" capture="environment" style="display:none" onchange="addDeliveryPhoto(event)">
+    </div>
+    <button class="primary" onclick="saveDelivery()">Сохранить</button>
+  </div>
+</dialog>
+
+<dialog id="delivery-detail-dialog">
+  <div class="sheet">
+    <div class="sheet-head">
+      <h3 id="dd-date"></h3>
+      <button class="icon-btn" onclick="document.getElementById('delivery-detail-dialog').close()">✕</button>
+    </div>
+    <div id="dd-note" style="white-space:pre-wrap; font-size:14.5px; margin-bottom:14px;"></div>
+    <div class="photo-gallery" id="dd-gallery"></div>
+    <div class="detail-actions">
+      <button class="ghost" onclick="document.getElementById('delivery-detail-dialog').close(); openDeliveryForm(currentDeliveryId)">✎ Изменить</button>
+      <button class="ghost" onclick="document.getElementById('delivery-detail-dialog').close(); deleteDelivery(currentDeliveryId)">🗑 Удалить</button>
+    </div>
+  </div>
+</dialog>
+
+<div id="photo-lightbox" onclick="closeLightbox()">
+  <button class="lb-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="">
+</div>
+
 <script>
 const STORAGE_KEY = "sklad_items_v1";
 let items = [];
+
+const DELIVERIES_KEY = "sklad_deliveries_v1";
+let deliveries = [];
+function loadDeliveries(){
+  try{ deliveries = JSON.parse(localStorage.getItem(DELIVERIES_KEY) || "[]"); }
+  catch(e){ deliveries = []; }
+}
+function persistDeliveries(){
+  localStorage.setItem(DELIVERIES_KEY, JSON.stringify(deliveries));
+}
 
 // ---------- PHOTO STORAGE (IndexedDB, separate from the items list) ----------
 // Photos live in their own database so they never touch/overwrite the
@@ -516,11 +641,16 @@ function persist(){
 function showScreen(name){
   document.getElementById('screen-calc').classList.toggle('active', name==='calc');
   document.getElementById('screen-store').classList.toggle('active', name==='store');
+  document.getElementById('screen-deliveries').classList.toggle('active', name==='deliveries');
   document.getElementById('tab-calc').classList.toggle('active', name==='calc');
   document.getElementById('tab-store').classList.toggle('active', name==='store');
-  document.getElementById('page-title').textContent = name==='calc' ? 'Калькулятор плитки' : 'База склада';
-  document.getElementById('page-sub').textContent = name==='calc' ? 'Кафель · ламинат · двери' : 'Поиск товара по названию';
+  document.getElementById('tab-deliveries').classList.toggle('active', name==='deliveries');
+  const titles = { calc: 'Калькулятор плитки', store: 'База склада', deliveries: 'Поставки' };
+  const subs = { calc: 'Кафель · ламинат · двери', store: 'Поиск товара по названию', deliveries: 'Приход товара и накладные' };
+  document.getElementById('page-title').textContent = titles[name];
+  document.getElementById('page-sub').textContent = subs[name];
   if(name==='store'){ renderItems(); }
+  if(name==='deliveries'){ renderDeliveries(); }
 }
 
 function toast(msg){
@@ -804,9 +934,170 @@ function importData(evt){
   reader.readAsText(file);
 }
 
+// ---------- DELIVERIES ----------
+function fmtDate(iso){
+  if(!iso) return '';
+  const [y,m,d] = iso.split('-');
+  const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+}
+
+function renderDeliveries(){
+  const list = document.getElementById('deliveries-list');
+  const sorted = deliveries.slice().sort((a,b) => (b.date+b.id).localeCompare(a.date+a.id));
+  document.getElementById('deliveries-count').textContent =
+    `${deliveries.length} ${deliveries.length===1?'поставка':'поставок'}`;
+
+  if(sorted.length === 0){
+    list.innerHTML = `<div class="empty">Пока нет ни одной поставки. Добавьте первую.</div>`;
+    return;
+  }
+
+  list.innerHTML = sorted.map(d => `
+    <div class="delivery-row" onclick="showDeliveryDetail('${d.id}')">
+      <div class="delivery-date">📦 ${fmtDate(d.date)}</div>
+      ${d.note ? `<div class="delivery-note">${escapeHtml(d.note)}</div>` : ''}
+      <div class="delivery-meta">${(d.photoIds||[]).length} фото накладной</div>
+    </div>
+  `).join('');
+}
+
+// temp state while the delivery form is open
+let __dfPhotoIds = [];
+
+function renderDfGallery(){
+  const gallery = document.getElementById('df-gallery');
+  gallery.innerHTML = __dfPhotoIds.map(pid => `
+    <div class="gallery-tile" id="dftile-${pid}">
+      <span class="rm" onclick="event.stopPropagation(); removeDeliveryPhoto('${pid}')">✕</span>
+    </div>
+  `).join('') + `<div class="gallery-tile add-tile" onclick="document.getElementById('df-photo-input').click()">+</div>`;
+
+  __dfPhotoIds.forEach(pid => {
+    getPhoto(pid).then(dataUrl => {
+      if(!dataUrl) return;
+      const el = document.getElementById(`dftile-${pid}`);
+      if(el) el.style.backgroundImage = `url(${dataUrl})`;
+    }).catch(()=>{});
+  });
+}
+
+function todayISO(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function openDeliveryForm(id){
+  const dlg = document.getElementById('delivery-form-dialog');
+  if(id){
+    const d = deliveries.find(x => x.id === id);
+    document.getElementById('df-title').textContent = 'Изменить поставку';
+    document.getElementById('df-id').value = d.id;
+    document.getElementById('df-date').value = d.date;
+    document.getElementById('df-note').value = d.note || '';
+    __dfPhotoIds = (d.photoIds || []).slice();
+  } else {
+    document.getElementById('df-title').textContent = 'Новая поставка';
+    document.getElementById('df-id').value = 'dl_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    document.getElementById('df-date').value = todayISO();
+    document.getElementById('df-note').value = '';
+    __dfPhotoIds = [];
+  }
+  renderDfGallery();
+  dlg.showModal();
+}
+function closeDeliveryForm(){ document.getElementById('delivery-form-dialog').close(); }
+
+async function addDeliveryPhoto(evt){
+  const file = evt.target.files[0];
+  evt.target.value = '';
+  if(!file) return;
+  try{
+    const dataUrl = await resizeImage(file);
+    const photoId = 'ph_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    await savePhoto(photoId, dataUrl);
+    __dfPhotoIds.push(photoId);
+    renderDfGallery();
+  }catch(e){
+    toast('Не удалось сохранить фото');
+  }
+}
+
+async function removeDeliveryPhoto(photoId){
+  await deletePhoto(photoId).catch(()=>{});
+  __dfPhotoIds = __dfPhotoIds.filter(p => p !== photoId);
+  renderDfGallery();
+}
+
+function saveDelivery(){
+  const id = document.getElementById('df-id').value;
+  const date = document.getElementById('df-date').value || todayISO();
+  const note = document.getElementById('df-note').value.trim();
+
+  if(!note && __dfPhotoIds.length === 0){
+    toast('Добавьте описание или хотя бы одно фото');
+    return;
+  }
+
+  const existing = deliveries.find(x => x.id === id);
+  const record = { id, date, note, photoIds: __dfPhotoIds.slice() };
+  if(existing){ Object.assign(existing, record); }
+  else { deliveries.push(record); }
+
+  persistDeliveries();
+  document.getElementById('delivery-form-dialog').close();
+  renderDeliveries();
+  toast('Поставка сохранена');
+}
+
+let currentDeliveryId = null;
+async function showDeliveryDetail(id){
+  const d = deliveries.find(x => x.id === id);
+  if(!d) return;
+  currentDeliveryId = id;
+
+  document.getElementById('dd-date').textContent = '📦 ' + fmtDate(d.date);
+  document.getElementById('dd-note').textContent = d.note || '(без описания)';
+
+  const gallery = document.getElementById('dd-gallery');
+  const photoIds = d.photoIds || [];
+  gallery.innerHTML = photoIds.map(pid => `<div class="gallery-tile" id="ddtile-${pid}" onclick="openLightbox('${pid}')"></div>`).join('');
+  photoIds.forEach(pid => {
+    getPhoto(pid).then(dataUrl => {
+      if(!dataUrl) return;
+      const el = document.getElementById(`ddtile-${pid}`);
+      if(el) el.style.backgroundImage = `url(${dataUrl})`;
+    }).catch(()=>{});
+  });
+
+  document.getElementById('delivery-detail-dialog').showModal();
+}
+
+function deleteDelivery(id){
+  if(!confirm('Удалить эту поставку вместе с фото накладной?')) return;
+  const d = deliveries.find(x => x.id === id);
+  if(d){ (d.photoIds||[]).forEach(pid => deletePhoto(pid).catch(()=>{})); }
+  deliveries = deliveries.filter(x => x.id !== id);
+  persistDeliveries();
+  renderDeliveries();
+  toast('Поставка удалена');
+}
+
+async function openLightbox(photoId){
+  const dataUrl = await getPhoto(photoId).catch(()=>null);
+  if(!dataUrl) return;
+  document.getElementById('lightbox-img').src = dataUrl;
+  document.getElementById('photo-lightbox').classList.add('show');
+}
+function closeLightbox(){
+  document.getElementById('photo-lightbox').classList.remove('show');
+  document.getElementById('lightbox-img').src = '';
+}
+
 // init
 loadItems();
 renderItems();
+loadDeliveries();
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
