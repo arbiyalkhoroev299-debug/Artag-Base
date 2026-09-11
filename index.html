@@ -299,6 +299,61 @@
   .detail-actions{ display:flex; gap:10px; margin-top:18px; }
   .detail-actions button{ flex:1; }
 
+  /* Stock Slider Controls */
+  .stock-control-box {
+    background: #F8F7F5;
+    border-radius: 16px;
+    padding: 14px;
+    margin: 14px 0;
+    border: 1px solid var(--line);
+  }
+  .stock-title {
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    letter-spacing: .04em;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .stock-slider-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .stock-slider-wrapper input[type=range] {
+    flex: 1;
+    accent-color: var(--accent);
+    cursor: pointer;
+    height: 6px;
+  }
+  .stock-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: none;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .stock-btn:active {
+    background: #EAE8E3;
+  }
+  .stock-val-display {
+    text-align: center;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--accent);
+    margin-top: 6px;
+  }
+
   /* Deliveries */
   .delivery-row{
     padding: 13px 4px;
@@ -474,7 +529,7 @@
       </div>
       <div class="field">
         <label>Остаток (необязательно)</label>
-        <input type="text" id="f-qty" placeholder="напр. 32 м²">
+        <input type="text" id="f-qty" placeholder="напр. 32">
       </div>
     </div>
     <div class="field">
@@ -495,6 +550,21 @@
     <div class="detail-row"><span class="k">Категория</span><span class="v" id="d-cat"></span></div>
     <div class="detail-row"><span class="k">Место на складе</span><span class="v" id="d-loc"></span></div>
     <div class="detail-row" id="d-qty-row"><span class="k">Остаток</span><span class="v" id="d-qty"></span></div>
+
+    <!-- Интерактивное управление остатком через ползунок -->
+    <div class="stock-control-box">
+      <div class="stock-title">
+        <span>Изменение остатка</span>
+        <span id="d-unit-label">шт.</span>
+      </div>
+      <div class="stock-slider-wrapper">
+        <button class="stock-btn" onclick="adjustStock(-1)">−</button>
+        <input type="range" id="d-stock-slider" min="0" max="500" value="0" oninput="onStockSliderChange(this.value)">
+        <button class="stock-btn" onclick="adjustStock(1)">+</button>
+      </div>
+      <div class="stock-val-display" id="d-stock-val">0</div>
+    </div>
+
     <div class="detail-actions">
       <button class="ghost" onclick="document.getElementById('detail-dialog').close(); openForm(currentDetailId)">✎ Изменить</button>
       <button class="ghost" onclick="document.getElementById('detail-dialog').close(); deleteItem(currentDetailId)">🗑 Удалить</button>
@@ -563,9 +633,7 @@ function persistDeliveries(){
   localStorage.setItem(DELIVERIES_KEY, JSON.stringify(deliveries));
 }
 
-// ---------- PHOTO STORAGE (IndexedDB, separate from the items list) ----------
-// Photos live in their own database so they never touch/overwrite the
-// existing localStorage item list — your saved data stays exactly as is.
+// ---------- PHOTO STORAGE ----------
 let __dbPromise = null;
 function openPhotoDB(){
   if(__dbPromise) return __dbPromise;
@@ -608,7 +676,6 @@ async function deletePhoto(id){
     tx.onerror = () => reject(tx.error);
   });
 }
-// Resize/compress a captured photo so it doesn't eat up storage
 function resizeImage(file, maxDim=1080, quality=0.8){
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -674,7 +741,7 @@ function calcTiles(){
     return;
   }
 
-  const tileArea = (w/100) * (h/100); // m2 per tile
+  const tileArea = (w/100) * (h/100);
   const neededWithMargin = need * (1 + marginPct/100);
   const tilesNeeded = Math.ceil(neededWithMargin / tileArea);
   const packs = Math.floor(tilesNeeded / perPack);
@@ -716,7 +783,7 @@ function renderItems(){
       <div class="item-main">
         <div class="item-name">${escapeHtml(it.name)}<span class="item-cat">${escapeHtml(it.cat||'—')}</span></div>
         <div class="item-loc">📍 ${escapeHtml(it.loc || '—')}</div>
-        ${it.qty ? `<div class="item-qty">Остаток: ${escapeHtml(it.qty)}</div>` : ''}
+        ${it.qty !== undefined && it.qty !== '' ? `<div class="item-qty">Остаток: ${escapeHtml(it.qty)}</div>` : ''}
       </div>
       <div class="item-actions">
         <button class="icon-btn" onclick="event.stopPropagation(); openForm('${it.id}')">✎</button>
@@ -752,7 +819,15 @@ function resetPhotoPreview(){
   document.getElementById('f-photo-remove').style.display = 'none';
 }
 
+function parseStockNumber(valStr) {
+  if (!valStr) return 0;
+  const match = String(valStr).match(/(\d+([\.,]\d+)?)/);
+  return match ? parseFloat(match[1].replace(',', '.')) : 0;
+}
+
 let currentDetailId = null;
+let currentStockUnit = '';
+
 async function showDetail(id){
   const it = items.find(x => x.id === id);
   if(!it) return;
@@ -761,8 +836,20 @@ async function showDetail(id){
   document.getElementById('d-name').textContent = it.name;
   document.getElementById('d-cat').textContent = it.cat || '—';
   document.getElementById('d-loc').textContent = it.loc || '—';
+  
+  const currentNum = parseStockNumber(it.qty);
+  const unitMatch = String(it.qty || '').replace(/[\d\s\.,]+/g, '').trim();
+  currentStockUnit = unitMatch || 'шт.';
+  document.getElementById('d-unit-label').textContent = currentStockUnit;
+
+  const slider = document.getElementById('d-stock-slider');
+  slider.max = Math.max(100, currentNum * 2 || 100);
+  slider.value = currentNum;
+
+  document.getElementById('d-stock-val').textContent = `${currentNum} ${currentStockUnit}`;
+
   const qtyRow = document.getElementById('d-qty-row');
-  if(it.qty){
+  if(it.qty !== undefined && it.qty !== ''){
     qtyRow.style.display = '';
     document.getElementById('d-qty').textContent = it.qty;
   } else {
@@ -781,6 +868,32 @@ async function showDetail(id){
   }
 
   document.getElementById('detail-dialog').showModal();
+}
+
+function onStockSliderChange(val){
+  const num = parseFloat(val) || 0;
+  const formattedVal = currentStockUnit ? `${num} ${currentStockUnit}` : `${num}`;
+  document.getElementById('d-stock-val').textContent = formattedVal;
+  document.getElementById('d-qty').textContent = formattedVal;
+  document.getElementById('d-qty-row').style.display = '';
+
+  const it = items.find(x => x.id === currentDetailId);
+  if(it){
+    it.qty = formattedVal;
+    persist();
+    renderItems();
+  }
+}
+
+function adjustStock(delta){
+  const slider = document.getElementById('d-stock-slider');
+  let currentVal = parseFloat(slider.value) || 0;
+  let newVal = Math.max(0, currentVal + delta);
+  if (newVal > parseFloat(slider.max)) {
+    slider.max = newVal * 2;
+  }
+  slider.value = newVal;
+  onStockSliderChange(newVal);
 }
 
 async function openForm(id){
@@ -804,7 +917,6 @@ async function openForm(id){
     }
   } else {
     document.getElementById('form-title').textContent = 'Новый товар';
-    // assign id now so a photo can be attached before the item is saved
     document.getElementById('f-id').value = 'it_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
     document.getElementById('f-name').value = '';
     document.getElementById('f-cat').value = 'Кафель';
@@ -827,7 +939,6 @@ async function capturePhoto(evt){
     document.getElementById('f-photo-preview').style.backgroundImage = `url(${dataUrl})`;
     document.getElementById('f-photo-preview').textContent = '';
     document.getElementById('f-photo-remove').style.display = 'inline-block';
-    // mark the item as having a photo if it already exists in the list
     const it = items.find(x => x.id === id);
     if(it){ it.hasPhoto = true; persist(); }
     toast('Фото сохранено');
@@ -962,7 +1073,6 @@ function renderDeliveries(){
   `).join('');
 }
 
-// temp state while the delivery form is open
 let __dfPhotoIds = [];
 
 function renderDfGallery(){
